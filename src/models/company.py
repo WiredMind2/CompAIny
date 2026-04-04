@@ -7,6 +7,7 @@ from .team import Team
 from .ticket import Ticket
 from .board import TicketBoard
 from .enums import AgentRole, AgentLevel, TeamType, TicketStatus, TicketPriority
+from ..providers import LLMProvider, get_provider
 
 
 @dataclass
@@ -18,6 +19,7 @@ class Company:
     next_agent_id: int = 1
     next_team_id: int = 1
     next_ticket_id: int = 1
+    llm_provider: Optional[LLMProvider] = field(default_factory=get_provider)
 
     def create_agent(self, name: str, role: AgentRole, level: AgentLevel, 
                      team_id: Optional[str] = None, boss_id: Optional[str] = None) -> Agent:
@@ -195,3 +197,19 @@ class Company:
             return False
         ticket.team_id = team_id
         return True
+    
+    def set_llm_provider(self, provider: LLMProvider) -> None:
+        """Set the LLM provider for the company."""
+        self.llm_provider = provider
+    
+    def complete(self, prompt: str, model: str = "openai/gpt-3.5-turbo", **kwargs) -> str:
+        """Generate a completion using the configured LLM provider."""
+        if self.llm_provider is None:
+            raise ValueError("No LLM provider configured")
+        return self.llm_provider.complete(prompt, model, **kwargs)
+    
+    def chat(self, messages: List[Dict[str, str]], model: str = "openai/gpt-3.5-turbo", **kwargs) -> str:
+        """Generate a chat completion using the configured LLM provider."""
+        if self.llm_provider is None:
+            raise ValueError("No LLM provider configured")
+        return self.llm_provider.chat(messages, model, **kwargs)
