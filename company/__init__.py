@@ -12,6 +12,7 @@ from company.models import (
     MeetingReport,
     Meeting,
 )
+from company.database import Database
 
 __all__ = [
     "Role",
@@ -26,4 +27,5 @@ __all__ = [
     "Ticket",
     "MeetingReport",
     "Meeting",
+    "Database",
 ]
