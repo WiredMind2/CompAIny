@@ -1,4 +1,4 @@
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, TYPE_CHECKING
 from datetime import datetime
 from dataclasses import dataclass, field
 
@@ -7,7 +7,14 @@ from .agent import Agent
 from .team import Team
 from .ticket import Ticket
 from .board import TicketBoard
+from .meeting import Meeting, MeetingType
 from .enums import AgentRole, AgentLevel, TeamType, TicketStatus, TicketPriority
+
+if TYPE_CHECKING:
+    from ..workflow import WorkflowEngine, WorkflowEvent
+else:
+    WorkflowEngine = None
+    WorkflowEvent = None
 
 
 @dataclass
@@ -16,9 +23,12 @@ class Company:
     teams: Dict[str, Team] = field(default_factory=dict)
     tickets: Dict[str, Ticket] = field(default_factory=dict)
     boards: Dict[str, TicketBoard] = field(default_factory=dict)
+    meetings: Dict[str, Meeting] = field(default_factory=dict)
+    workflow_engine: Optional[WorkflowEngine] = None
     next_agent_id: int = 1
     next_team_id: int = 1
     next_ticket_id: int = 1
+    next_meeting_id: int = 1
 
     @classmethod
     def bootstrap(cls, task_description: str) -> "Company":
@@ -202,3 +212,104 @@ class Company:
             return False
         ticket.team_id = team_id
         return True
+
+    def create_meeting(self, meeting_type: MeetingType, team_id: str, host_id: str) -> Meeting:
+        meeting_id = f"meeting-{self.next_meeting_id}"
+        self.next_meeting_id += 1
+        meeting = Meeting(
+            id=meeting_id,
+            type=meeting_type,
+            team_id=team_id,
+            host_id=host_id
+        )
+        self.meetings[meeting_id] = meeting
+        
+        team = self.teams.get(team_id)
+        if team:
+            for member_id in team.member_ids:
+                meeting.add_participant(member_id)
+        
+        return meeting
+
+    def get_meeting(self, meeting_id: str) -> Optional[Meeting]:
+        return self.meetings.get(meeting_id)
+
+    def start_workflow_engine(self) -> None:
+        if self.workflow_engine is None:
+            from ..workflow import WorkflowEngine
+            self.workflow_engine = WorkflowEngine()
+            self.workflow_engine.initialize(self)
+        self.workflow_engine.start()
+
+    def stop_workflow_engine(self) -> None:
+        if self.workflow_engine:
+            self.workflow_engine.stop()
+
+    def complete_ticket(self, agent_id: str, ticket_id: str) -> Optional[str]:
+        ticket = self.tickets.get(ticket_id)
+        if not ticket or ticket.assignee_id != agent_id:
+            return None
+        
+        ticket.set_status(TicketStatus.DONE)
+        
+        if self.workflow_engine and self.workflow_engine.is_running():
+            from ..workflow.triggers import WorkflowEvent
+            self.workflow_engine.emit_event(
+                WorkflowEvent.TICKET_COMPLETED,
+                agent_id=agent_id,
+                team_id=ticket.team_id,
+                ticket_id=ticket_id
+            )
+        
+        return ticket_id
+
+    def pick_next_ticket(self, agent_id: str) -> Optional[Ticket]:
+        agent = self.agents.get(agent_id)
+        if not agent or not agent.team_id:
+            return None
+        
+        team = self.teams.get(agent.team_id)
+        if not team:
+            return None
+        
+        for ticket in self.tickets.values():
+            if ticket.team_id == agent.team_id and ticket.status in [
+                TicketStatus.BACKLOG,
+                TicketStatus.TODO
+            ] and not ticket.assignee_id:
+                ticket.assign(agent_id)
+                ticket.set_status(TicketStatus.IN_PROGRESS)
+                return ticket
+        
+        return None
+
+    def report_blocker(self, agent_id: str, ticket_id: str, reason: str) -> None:
+        ticket = self.tickets.get(ticket_id)
+        if not ticket:
+            return
+        
+        if self.workflow_engine and self.workflow_engine.is_running():
+            from ..workflow.triggers import WorkflowEvent
+            self.workflow_engine.emit_event(
+                WorkflowEvent.TICKET_BLOCKED,
+                agent_id=agent_id,
+                team_id=ticket.team_id,
+                ticket_id=ticket_id,
+                metadata={"reason": reason}
+            )
+
+    def check_team_completion(self, team_id: str) -> bool:
+        team = self.teams.get(team_id)
+        if not team:
+            return False
+        return team.check_completion(list(self.tickets.values()))
+
+    def trigger_team_completion(self, team_id: str, sprint_ended: bool = False) -> None:
+        if self.workflow_engine and self.workflow_engine.is_running():
+            from ..workflow.triggers import WorkflowEvent
+            self.workflow_engine.emit_event(
+                WorkflowEvent.TEAM_COMPLETED,
+                agent_id="",
+                team_id=team_id,
+                metadata={"sprint_ended": sprint_ended}
+            )
