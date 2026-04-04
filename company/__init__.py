@@ -7,10 +7,12 @@ from company.models import (
     MeetingType,
     AgentMemory,
     Agent,
+    AgentFactory,
     Team,
     Ticket,
     MeetingReport,
     Meeting,
+    Message,
 )
 
 __all__ = [
@@ -22,8 +24,10 @@ __all__ = [
     "MeetingType",
     "AgentMemory",
     "Agent",
+    "AgentFactory",
     "Team",
     "Ticket",
     "MeetingReport",
     "Meeting",
+    "Message",
 ]

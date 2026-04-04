@@ -64,6 +64,7 @@ class AgentMemory:
 @dataclass
 class Agent:
     id: str
+    name: str
     role: Role
     level: Level
     team_id: Optional[str] = None
@@ -75,16 +76,98 @@ class Agent:
             return False
         my_level = self.level.value
         other_level = other.level.value
-        return other_level in (my_level + 1, my_level, my_level - 1)
+        is_boss = other.boss_id == self.id
+        is_underling = self.boss_id == other.id
+        is_peer = other.level.value == self.level.value and other.team_id == self.team_id
+        return is_boss or is_underling or is_peer
 
     def is_boss_of(self, other: Agent) -> bool:
-        return other.level.value == self.level.value + 1
+        return other.level.value == self.level.value + 1 and other.boss_id == self.id
 
     def is_underling_of(self, other: Agent) -> bool:
-        return other.level.value == self.level.value - 1
+        return other.level.value == self.level.value - 1 and self.boss_id == other.id
 
     def is_peer_of(self, other: Agent) -> bool:
-        return other.level.value == self.level.value
+        return other.level.value == self.level.value and other.id != self.id
+
+    def get_boss(self, all_agents: dict[str, Agent]) -> Optional[Agent]:
+        if self.boss_id and self.boss_id in all_agents:
+            return all_agents[self.boss_id]
+        return None
+
+    def get_underlings(self, all_agents: dict[str, Agent]) -> list[Agent]:
+        return [a for a in all_agents.values() if a.boss_id == self.id]
+
+    def get_peers(self, all_agents: dict[str, Agent]) -> list[Agent]:
+        return [a for a in all_agents.values() 
+                if a.level.value == self.level.value 
+                and a.id != self.id 
+                and a.team_id == self.team_id]
+
+
+class AgentFactory:
+    _id_counter: int = 0
+
+    @classmethod
+    def create_agent(
+        cls,
+        name: str,
+        role: Role,
+        level: Level,
+        team_id: Optional[str] = None,
+        boss_id: Optional[str] = None,
+        all_agents: Optional[dict[str, Agent]] = None,
+    ) -> Agent:
+        cls._id_counter += 1
+        agent_id = f"agent_{cls._id_counter}"
+        agent = Agent(
+            id=agent_id,
+            name=name,
+            role=role,
+            level=level,
+            team_id=team_id,
+            boss_id=boss_id,
+        )
+        if all_agents is not None:
+            all_agents[agent_id] = agent
+        return agent
+
+    @classmethod
+    def create_team_leader(
+        cls,
+        name: str,
+        role: Role,
+        team_id: str,
+        level: Level = Level.L5,
+        all_agents: Optional[dict[str, Agent]] = None,
+    ) -> Agent:
+        return cls.create_agent(
+            name=name,
+            role=role,
+            level=level,
+            team_id=team_id,
+            boss_id=None,
+            all_agents=all_agents,
+        )
+
+    @classmethod
+    def create_underling(
+        cls,
+        name: str,
+        role: Role,
+        team_id: str,
+        boss_id: str,
+        level: Level = Level.L1,
+        all_agents: Optional[dict[str, Agent]] = None,
+    ) -> Agent:
+        return cls.create_agent(
+            name=name,
+            role=role,
+            level=level,
+            team_id=team_id,
+            boss_id=boss_id,
+            all_agents=all_agents,
+        )
 
 
 @dataclass
@@ -131,3 +214,32 @@ class Meeting:
 
     def add_report(self, author_id: str, content: str) -> None:
         self.reports.append(MeetingReport(author_id=author_id, content=content))
+
+
+@dataclass
+class Message:
+    id: str
+    sender_id: str
+    receiver_id: str
+    content: str
+    read: bool = False
+
+    @classmethod
+    def send(
+        cls,
+        sender: Agent,
+        receiver: Agent,
+        content: str,
+        all_agents: dict[str, Agent],
+    ) -> Optional[Message]:
+        if not sender.can_communicate_with(receiver):
+            return None
+        Message._id_counter += 1
+        return cls(
+            id=f"msg_{Message._id_counter}",
+            sender_id=sender.id,
+            receiver_id=receiver.id,
+            content=content,
+        )
+
+    _id_counter: int = 0
