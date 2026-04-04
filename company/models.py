@@ -64,14 +64,13 @@ class AgentMemory:
 @dataclass
 class Agent:
     id: str
-    name: str
     role: Role
     level: Level
+    name: Optional[str] = None
     team_id: Optional[str] = None
     memory: AgentMemory = field(default_factory=AgentMemory)
     boss_id: Optional[str] = None
     is_human: bool = False
-    name: Optional[str] = None
     email: Optional[str] = None
 
     def can_communicate_with(self, other: Agent) -> bool:
