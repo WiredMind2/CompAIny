@@ -69,6 +69,9 @@ class Agent:
     team_id: Optional[str] = None
     memory: AgentMemory = field(default_factory=AgentMemory)
     boss_id: Optional[str] = None
+    is_human: bool = False
+    name: Optional[str] = None
+    email: Optional[str] = None
 
     def can_communicate_with(self, other: Agent) -> bool:
         if self.id == other.id:
@@ -85,6 +88,46 @@ class Agent:
 
     def is_peer_of(self, other: Agent) -> bool:
         return other.level.value == self.level.value
+
+
+@dataclass
+class HumanAgentRegistry:
+    human_agents: dict[str, Agent] = field(default_factory=dict)
+
+    def register_human(
+        self,
+        agent_id: str,
+        role: Role,
+        level: Level,
+        name: str,
+        email: Optional[str] = None,
+        team_id: Optional[str] = None,
+        boss_id: Optional[str] = None,
+    ) -> Agent:
+        agent = Agent(
+            id=agent_id,
+            role=role,
+            level=level,
+            is_human=True,
+            name=name,
+            email=email,
+            team_id=team_id,
+            boss_id=boss_id,
+        )
+        self.human_agents[agent_id] = agent
+        return agent
+
+    def get_human(self, agent_id: str) -> Optional[Agent]:
+        return self.human_agents.get(agent_id)
+
+    def list_humans(self) -> list[Agent]:
+        return list(self.human_agents.values())
+
+    def unregister_human(self, agent_id: str) -> bool:
+        if agent_id in self.human_agents:
+            del self.human_agents[agent_id]
+            return True
+        return False
 
 
 @dataclass
@@ -110,9 +153,19 @@ class Ticket:
     priority: TicketPriority = TicketPriority.MEDIUM
     assignee_id: Optional[str] = None
     github_issue_id: Optional[str] = None
+    github_issue_number: Optional[int] = None
     subtasks: list[str] = field(default_factory=list)
     complexity: Optional[int] = None
     locked_by: Optional[str] = None
+    linked_prs: list[str] = field(default_factory=list)
+
+    def link_pr(self, pr_id: str) -> None:
+        if pr_id not in self.linked_prs:
+            self.linked_prs.append(pr_id)
+
+    def unlink_pr(self, pr_id: str) -> None:
+        if pr_id in self.linked_prs:
+            self.linked_prs.remove(pr_id)
 
 
 @dataclass
