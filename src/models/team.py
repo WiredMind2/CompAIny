@@ -1,8 +1,12 @@
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from dataclasses import dataclass, field
 
 from .enums import TeamType
+
+if TYPE_CHECKING:
+    from .ticket import Ticket
+    from .meeting import MeetingType
 
 
 @dataclass
@@ -43,3 +47,9 @@ class Team:
     def get_all_member_ids(self) -> List[str]:
         all_members = list(self.member_ids)
         return all_members
+
+    def check_completion(self, tickets: List["Ticket"]) -> bool:
+        team_tickets = [t for t in tickets if t.team_id == self.id]
+        if not team_tickets:
+            return False
+        return all(t.status.value == "done" for t in team_tickets)
