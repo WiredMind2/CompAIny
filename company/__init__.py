@@ -12,6 +12,8 @@ from company.models import (
     MeetingReport,
     Meeting,
 )
+from company.cli import main as cli_main
+from company.api import run_api
 
 __all__ = [
     "Role",
@@ -26,4 +28,6 @@ __all__ = [
     "Ticket",
     "MeetingReport",
     "Meeting",
+    "cli_main",
+    "run_api",
 ]
