@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "compainy"
+version = "0.1.0"
+description = "CLI and REST API for CompAIny agent management"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.0.0",
+    "flask>=3.0.0",
+]
+
+[project.scripts]
+compainy = "company.cli:cli"
+compainy-api = "company.api:app"
+
+[tool.setup.packages.find]
+where = ["src"]
