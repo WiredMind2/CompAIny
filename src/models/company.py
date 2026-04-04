@@ -2,6 +2,7 @@ from typing import Optional, Dict, List
 from datetime import datetime
 from dataclasses import dataclass, field
 
+from ..ceo import CEOAgent
 from .agent import Agent
 from .team import Team
 from .ticket import Ticket
@@ -18,6 +19,12 @@ class Company:
     next_agent_id: int = 1
     next_team_id: int = 1
     next_ticket_id: int = 1
+
+    @classmethod
+    def bootstrap(cls, task_description: str) -> "Company":
+        company = cls()
+        ceo = CEOAgent(company)
+        return ceo.bootstrap(task_description)
 
     def create_agent(self, name: str, role: AgentRole, level: AgentLevel, 
                      team_id: Optional[str] = None, boss_id: Optional[str] = None) -> Agent:
