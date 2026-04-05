@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Tickets - CompAIny{% endblock %}
+
+{% block extra_css %}
+<style>
+.kanban-board {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    overflow-x: auto;
+}
+.kanban-column {
+    background: #ecf0f1;
+    border-radius: 8px;
+    padding: 1rem;
+    min-width: 200px;
+}
+.kanban-column h3 {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+.kanban-column.backlog h3 { background: #95a5a6; color: white; }
+.kanban-column.todo h3 { background: #3498db; color: white; }
+.kanban-column.in_progress h3 { background: #f39c12; color: white; }
+.kanban-column.review h3 { background: #9b59b6; color: white; }
+.kanban-column.done h3 { background: #27ae60; color: white; }
+
+.ticket-card {
+    background: white;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.ticket-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+.ticket-card h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+.ticket-card p {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    margin-bottom: 0.5rem;
+}
+.ticket-card .meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+}
+.badge-priority {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+}
+.badge-priority.low { background: #ecf0f1; color: #333; }
+.badge-priority.medium { background: #3498db; color: white; }
+.badge-priority.high { background: #f39c12; color: white; }
+.badge-priority.critical { background: #e74c3c; color: white; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 2rem;">Tickets - Kanban Board</h1>
+
+<div class="kanban-board">
+    <div class="kanban-column backlog">
+        <h3>Backlog</h3>
+        <div id="backlog"></div>
+    </div>
+    <div class="kanban-column todo">
+        <h3>Todo</h3>
+        <div id="todo"></div>
+    </div>
+    <div class="kanban-column in_progress">
+        <h3>In Progress</h3>
+        <div id="in_progress"></div>
+    </div>
+    <div class="kanban-column review">
+        <h3>Review</h3>
+        <div id="review"></div>
+    </div>
+    <div class="kanban-column done">
+        <h3>Done</h3>
+        <div id="done"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const statusMap = {
+    'backlog': 'backlog',
+    'todo': 'todo',
+    'in_progress': 'in_progress',
+    'review': 'review',
+    'done': 'done'
+};
+
+function renderTicket(ticket) {
+    return `
+        <div class="ticket-card">
+            <h4>${ticket.title}</h4>
+            <p>${ticket.description || ''}</p>
+            <div class="meta">
+                <span class="badge-priority ${ticket.priority}">${ticket.priority}</span>
+                <span>${ticket.assignee_name || 'Unassigned'}</span>
+            </div>
+        </div>
+    `;
+}
+
+fetch('/api/tickets').then(r => r.json()).then(tickets => {
+    const columns = { backlog: '', todo: '', in_progress: '', review: '', done: '' };
+    tickets.forEach(ticket => {
+        const status = statusMap[ticket.status];
+        if (columns[status] !== undefined) {
+            columns[status] += renderTicket(ticket);
+        }
+    });
+    Object.keys(columns).forEach(col => {
+        document.getElementById(col).innerHTML = columns[col] || '<p style="text-align:center;color:#999;font-size:0.8rem;">No tickets</p>';
+    });
+});
+</script>
+{% endblock %}

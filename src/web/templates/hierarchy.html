@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Hierarchy - CompAIny{% endblock %}
+
+{% block extra_css %}
+<style>
+.tree { padding-left: 20px; }
+.tree ul { list-style: none; padding-left: 20px; margin: 5px 0; }
+.tree li {
+    margin: 10px 0;
+    position: relative;
+}
+.tree li::before {
+    content: "├─ ";
+    color: #999;
+}
+.tree li:last-child::before {
+    content: "└─ ";
+}
+.node {
+    display: inline-block;
+    background: #3498db;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.node:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+.node .role {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+.node .level {
+    font-size: 0.7rem;
+    background: rgba(255,255,255,0.2);
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 2rem;">Agent Hierarchy</h1>
+
+<div class="card">
+    <h2>Organization Chart</h2>
+    <div id="hierarchy-tree" style="padding: 1rem;">
+        <p>Loading hierarchy...</p>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 1.5rem;">
+    <h2>All Agents</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Level</th>
+                <th>Team</th>
+                <th>Reports To</th>
+            </tr>
+        </thead>
+        <tbody id="agent-table">
+            <tr><td colspan="5">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function renderTree(node) {
+    if (!node) return '';
+    let html = '<li>';
+    html += `<div class="node" onclick="showAgent('${node.id}')">`;
+    html += `${node.name}<span class="role">${node.role}</span><span class="level">${node.level}</span>`;
+    if (node.team) html += ` <span style="font-size:0.7rem;opacity:0.7">| ${node.team}</span>`;
+    html += '</div>';
+    if (node.children && node.children.length > 0) {
+        html += '<ul>';
+        node.children.forEach(child => {
+            html += renderTree(child);
+        });
+        html += '</ul>';
+    }
+    html += '</li>';
+    return html;
+}
+
+fetch('/api/hierarchy').then(r => r.json()).then(data => {
+    if (data.length > 0) {
+        let html = '<ul class="tree">';
+        data.forEach(node => {
+            html += renderTree(node);
+        });
+        html += '</ul>';
+        document.getElementById('hierarchy-tree').innerHTML = html;
+    } else {
+        document.getElementById('hierarchy-tree').innerHTML = '<p>No hierarchy data</p>';
+    }
+});
+
+fetch('/api/agents').then(r => r.json()).then(agents => {
+    const tbody = document.getElementById('agent-table');
+    if (agents.length > 0) {
+        tbody.innerHTML = agents.map(a => `
+            <tr>
+                <td>${a.name}</td>
+                <td><span class="badge badge-in_progress">${a.role}</span></td>
+                <td>${a.level}</td>
+                <td>${a.team_name || '-'}</td>
+                <td>${a.boss_name || '-'}</td>
+            </tr>
+        `).join('');
+    } else {
+        tbody.innerHTML = '<tr><td colspan="5">No agents found</td></tr>';
+    }
+});
+</script>
+{% endblock %}

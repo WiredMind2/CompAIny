@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - CompAIny{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 2rem;">Dashboard</h1>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+    <div class="card">
+        <h2>Agents</h2>
+        <p id="agent-count" style="font-size: 2rem; font-weight: bold; color: #3498db;">Loading...</p>
+    </div>
+    <div class="card">
+        <h2>Teams</h2>
+        <p id="team-count" style="font-size: 2rem; font-weight: bold; color: #27ae60;">Loading...</p>
+    </div>
+    <div class="card">
+        <h2>Tickets</h2>
+        <p id="ticket-count" style="font-size: 2rem; font-weight: bold; color: #f39c12;">Loading...</p>
+    </div>
+    <div class="card">
+        <h2>Meetings</h2>
+        <p id="meeting-count" style="font-size: 2rem; font-weight: bold; color: #9b59b6;">Loading...</p>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 1.5rem;">
+    <h2>Quick Links</h2>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="/hierarchy" class="btn">View Hierarchy</a>
+        <a href="/tickets" class="btn">View Tickets</a>
+        <a href="/teams" class="btn">View Teams</a>
+        <a href="/chat" class="btn">Chat with Agents</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+fetch('/api/agents').then(r => r.json()).then(d => document.getElementById('agent-count').textContent = d.length);
+fetch('/api/teams').then(r => r.json()).then(d => document.getElementById('team-count').textContent = d.length);
+fetch('/api/tickets').then(r => r.json()).then(d => document.getElementById('ticket-count').textContent = d.length);
+fetch('/api/meetings').then(r => r.json()).then(d => document.getElementById('meeting-count').textContent = d.length);
+</script>
+{% endblock %}
