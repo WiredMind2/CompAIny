@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Teams - CompAIny{% endblock %}
+
+{% block extra_css %}
+<style>
+.team-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.team-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+.team-header h3 {
+    margin: 0;
+    color: #2c3e50;
+}
+.team-type {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #3498db;
+    color: white;
+    text-transform: uppercase;
+}
+.team-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+.info-item label {
+    font-size: 0.75rem;
+    color: #7f8c8d;
+    margin-bottom: 0.25rem;
+}
+.info-item span {
+    font-weight: 500;
+}
+.members-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.member-badge {
+    background: #ecf0f1;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.member-badge.leader {
+    background: #3498db;
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 2rem;">Teams</h1>
+
+<div id="teams-list">
+    <p>Loading teams...</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+fetch('/api/teams').then(r => r.json()).then(teams => {
+    const container = document.getElementById('teams-list');
+    if (teams.length === 0) {
+        container.innerHTML = '<p>No teams found</p>';
+        return;
+    }
+    container.innerHTML = teams.map(team => `
+        <div class="team-card">
+            <div class="team-header">
+                <h3>${team.name}</h3>
+                <span class="team-type">${team.type}</span>
+            </div>
+            <div class="team-info">
+                <div class="info-item">
+                    <label>Leader</label>
+                    <span>${team.leader_name || 'Unknown'}</span>
+                </div>
+                <div class="info-item">
+                    <label>Members</label>
+                    <span>${team.member_count} member(s)</span>
+                </div>
+                <div class="info-item">
+                    <label>Team ID</label>
+                    <span>${team.id}</span>
+                </div>
+            </div>
+            <div class="members-list">
+                ${team.members.map(m => `
+                    <span class="member-badge ${m.id === team.leader_id ? 'leader' : ''}">
+                        ${m.name}
+                    </span>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+});
+</script>
+{% endblock %}
