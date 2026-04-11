@@ -28,6 +28,7 @@ class Agent:
     workspace_path: Optional[str] = None
     workspace_branch: Optional[str] = None
     repo_url: Optional[str] = None
+    llm_provider: Optional[Any] = None
 
     def can_message(self, target: "Agent") -> bool:
         if target.id == self.id:
@@ -57,3 +58,16 @@ class Agent:
 
     def store_tool_result(self, tool_call_id: str, result: Dict[str, Any]):
         self.memory_short_term[tool_call_id] = result
+
+    def set_llm_provider(self, provider: Any) -> None:
+        self.llm_provider = provider
+
+    def complete(self, prompt: str, model: str = "openai/gpt-3.5-turbo", **kwargs) -> str:
+        if self.llm_provider:
+            return self.llm_provider.complete(prompt, model, **kwargs)
+        raise Exception("No LLM provider configured")
+
+    def chat(self, messages: List[Dict[str, str]], model: str = "openai/gpt-3.5-turbo", **kwargs) -> str:
+        if self.llm_provider:
+            return self.llm_provider.chat(messages, model, **kwargs)
+        raise Exception("No LLM provider configured")

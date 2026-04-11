@@ -3,6 +3,7 @@ from datetime import datetime
 from dataclasses import dataclass, field
 
 from ..ceo import CEOAgent
+from ..providers import LLMProvider, get_provider
 from .agent import Agent
 from .team import Team
 from .ticket import Ticket
@@ -25,6 +26,7 @@ class Company:
     boards: Dict[str, TicketBoard] = field(default_factory=dict)
     meetings: Dict[str, Meeting] = field(default_factory=dict)
     workflow_engine: Optional[WorkflowEngine] = None
+    llm_provider: Optional[LLMProvider] = None
     next_agent_id: int = 1
     next_team_id: int = 1
     next_ticket_id: int = 1
@@ -35,6 +37,16 @@ class Company:
         company = cls()
         ceo = CEOAgent(company)
         return ceo.bootstrap(task_description)
+
+    def set_llm_provider(self, provider: Optional[LLMProvider] = None) -> None:
+        if provider is None:
+            provider = get_provider()
+        self.llm_provider = provider
+
+    def get_llm_provider(self) -> LLMProvider:
+        if self.llm_provider is None:
+            self.llm_provider = get_provider()
+        return self.llm_provider
 
     def create_agent(self, name: str, role: AgentRole, level: AgentLevel, 
                      team_id: Optional[str] = None, boss_id: Optional[str] = None) -> Agent:
